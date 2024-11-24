@@ -1,0 +1,40 @@
+name: Sync Google Drive to GitHub
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Runs every 6 hours
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+        
+    - name: Install dependencies
+      run: |
+        pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+
+    - name: Configure Google Drive credentials
+      run: |
+        echo "${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}" > credentials.json
+      
+    - name: Run sync script
+      run: python sync_drive.py
+      env:
+        FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Auto-sync notebooks from Google Drive" || echo "No changes to commit"
+        git push
